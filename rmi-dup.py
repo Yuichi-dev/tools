@@ -67,11 +67,13 @@ def rm_dup(dir_name, print_list):
             answer = input("Do you want to delete all duplicate images?\nWrite 'delete' to confirm.\n")
             if answer == "delete":
                 not_deleted = []
-                for fn in duplicates:
+                printProgressBar(0, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50)
+                for i, fn in enumerate(duplicates):
                     try:
                         os.remove(os.path.join(dir_name, fn))
                     except:
                         not_deleted.append(os.path.join(dir_name, fn))
+                    printProgressBar(i + 1, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50)
 
                 if len(not_deleted) != 0:
                     print("Could not delete some files.\nMake sure the following files are not in use.")
