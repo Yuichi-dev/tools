@@ -1,5 +1,6 @@
 # tools
 ## rmi-dup.py
+![Image of rmi-dup](https://i.imgur.com/bSXGyD4.png)  
 rmi-dup.py is a command line tool that removes duplicates from specified folder.  
 It uses average hashing to accomplish this.  
 
