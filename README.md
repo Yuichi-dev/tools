@@ -12,4 +12,9 @@ Duplicates can be in different resolution and/or format
 -d, --directory   Specify directory from which to remove duplicate images  
 -h, --help        Display this help and exit  
 -l, --list        Use with -d to list duplicates in the specified folder  
+<<<<<<< HEAD
 </pre>    
+=======
+</pre>
+    
+>>>>>>> 0f744eab1dc26d9740af0d5c3f3d323d7cf8df37
