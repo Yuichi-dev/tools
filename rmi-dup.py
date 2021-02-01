@@ -4,7 +4,7 @@ from PIL import Image
 
 # Remove all duplicates. Works if the only difference is resolution and/or fileformat.
 # Made by Jussi Lehtonen
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -33,7 +33,7 @@ def rm_dup(dir_name, print_list):
     total_items = len(file_names) # Used for the progress bar
     start_time = time.perf_counter()
     
-    printProgressBar(0, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    print_progress_bar(0, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50)
     for i, file_name in enumerate(file_names):
         file_path = os.path.join(dir_name, file_name)
         if os.path.isfile(file_path) and ".psd" not in file_path: # Skip .psd files since it takes forever to hash them.
@@ -54,7 +54,7 @@ def rm_dup(dir_name, print_list):
                         hashes[temp_hash] = file_name
             except:
                 pass
-        printProgressBar(i + 1, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
+        print_progress_bar(i + 1, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
     end_time = time.perf_counter()
     print(f"Time taken: {end_time-start_time:0.4f} seconds. Total number of files checked: {total_items}")
     print(f"{len(duplicates)} duplicate images found.")    
@@ -67,13 +67,13 @@ def rm_dup(dir_name, print_list):
             answer = input("Do you want to delete all duplicate images?\nWrite 'delete' to confirm.\n")
             if answer == "delete":
                 not_deleted = []
-                printProgressBar(0, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50)
+                print_progress_bar(0, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50)
                 for i, fn in enumerate(duplicates):
                     try:
                         os.remove(os.path.join(dir_name, fn))
                     except:
                         not_deleted.append(os.path.join(dir_name, fn))
-                    printProgressBar(i + 1, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50)
+                    print_progress_bar(i + 1, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50)
 
                 if len(not_deleted) != 0:
                     print("Could not delete some files.\nMake sure the following files are not in use.")
