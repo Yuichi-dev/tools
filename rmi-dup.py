@@ -102,6 +102,8 @@ def rm_dup(dir_name, print_list, hash_size, remove):
 
 def main(argv):
     help_text = ''.join(("Usage: rmi-dup.py -d <directory>\n",
+                         "       rmi-dup.py -d <directory> -r .txt\n",  
+                         "       rmi-dup.py -d <directory> -s 64\n",
                          "Removes all duplicate images from the specified directory\n",
                          "Duplicates can be in different resolution and/or format\n\n",
                          "-d, --directory    Specify directory from which to remove duplicate images\n",
