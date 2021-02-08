@@ -25,11 +25,11 @@ def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1
     if iteration == total: 
         print()
 
-def rm_dup(dir_name, print_list):
+def rm_dup(dir_name, print_list, hash_size):
     file_names = os.listdir(dir_name)
     hashes = {} # {“Hash”: “Image”,…}
     duplicates = [] # File names of duplicates
-    hash_size = 8 # Image will be resized to 8x8 | 8 = default. Anything higher will probably be more accurate and also slower.
+    # hash_size = 8 # Image will be resized to 8x8 | 8 = default. Anything higher will probably be more accurate and also slower.
     total_items = len(file_names) # Used for the progress bar
     start_time = time.perf_counter()
     
@@ -56,7 +56,7 @@ def rm_dup(dir_name, print_list):
                 pass
         print_progress_bar(index + 1, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
     end_time = time.perf_counter()
-    print(f"Time taken: {end_time-start_time:0.4f} seconds. Total number of files checked: {total_items}")
+    print(f"Time taken: {end_time-start_time:0.4f} seconds. Total number of files checked: {total_items}. Hash size was: {hash_size}")
     print(f"{len(duplicates)} duplicate images found.")
     if len(duplicates) != 0:
         if print_list == True:
@@ -86,28 +86,46 @@ def main(argv):
                          "Duplicates can be in different resolution and/or format\n\n",
                          "-d, --directory    Specify directory from which to remove duplicate images\n",
                          "-h, --help         Display this help and exit\n",
-                         "-l, --list         Use with -d to list duplicates in the specified folder"))
+                         "-l, --list         Use with -d to list duplicates in the specified folder\n",
+                         "-s, --size         Size of the hashable image. Default = 8."))
     print_list = False
+    run = False # This is so that the script runs after checking all parameters.
+    hash_size = 8
     
     try:
-        opts, args = getopt.getopt(argv, "hld:", ["help","list","directory"])
+        opts, args = getopt.getopt(argv, "hld:s:", ["help","list","directory"])
     except:
         print("rmi-dup: invalid operand\nTry 'rmi-dup.py --help' for more information.")
         return
     if len(sys.argv) <= 1:
         print("rmi-dup: missing operand\nTry 'rmi-dup.py --help' for more information.")
-    for opt, arg in opts:
-        if opt in ("-l", "--list"):
-            print_list = True
+
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print(help_text)
             sys.exit()
+        
         elif opt in ("-d", "--directory"):
             dir_name = arg
             if os.path.exists(dir_name):
-                rm_dup(dir_name, print_list)
+                run = True
             else:
-                print(f"{dir_name} does not exist")
+                print(f"-d, --directory | {dir_name} does not exist")
+                sys.exit()
+        
+        elif opt in ("-l", "--list"):
+            print_list = True
+ 
+        elif opt in ("-s", "--size"):
+            try:
+                hash_size = int(arg)
+                
+            except:
+                print(f"-s, --s | {arg} is not a valid number")
+                sys.exit()
+                
+    if run == True:
+        rm_dup(dir_name, print_list, hash_size)
+            
 if __name__ == "__main__":
     main(sys.argv[1:])
