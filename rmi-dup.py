@@ -28,52 +28,64 @@ def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1
 def rm_dup(dir_name, print_list, hash_size):
     file_names = os.listdir(dir_name)
     hashes = {} # {“Hash”: “Image”,…}
-    duplicates = [] # File names of duplicates
+    duplicates = {} # File names of duplicates
+    original = {} # Storing the "original" image
     # hash_size = 8 # Image will be resized to 8x8 | 8 = default. Anything higher will probably be more accurate and also slower.
     total_items = len(file_names) # Used for the progress bar
     start_time = time.perf_counter()
     
     print_progress_bar(0, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    
     for index, file_name in enumerate(file_names):
         file_path = os.path.join(dir_name, file_name)
         if os.path.isfile(file_path) and ".psd" not in file_path: # Skip .psd files since it takes forever to hash them.
-            try:
-                with Image.open(file_path) as img:
-                    temp_hash = imagehash.average_hash(img, hash_size)
-                    if temp_hash in hashes:
-                        
-                        # Open the previous duplicate and compare with current file.
-                        # Keep the one with bigger resolution
-                        with Image.open(os.path.join(dir_name, hashes[temp_hash])) as img2:                      
-                            if img2.size[0] < img.size[0]:
-                                duplicates.append(hashes[temp_hash])
-                                hashes[temp_hash] = file_name
-                            else:
-                                duplicates.append(file_name)
-                    else:
-                        hashes[temp_hash] = file_name
-            except:
-                pass
+            #try:
+            with Image.open(file_path) as img:
+                temp_hash = imagehash.average_hash(img, hash_size)
+                if temp_hash in hashes:
+
+                    # Open the previous duplicate and compare with current file.
+                    # Keep the one with bigger resolution
+                    with Image.open(os.path.join(dir_name, hashes[temp_hash])) as img2:                      
+                        if temp_hash not in duplicates:
+                            duplicates[temp_hash] = []
+                        if img2.size[0] < img.size[0]:
+                            duplicates[temp_hash].append(hashes[temp_hash])
+                            hashes[temp_hash] = file_name
+                            original[temp_hash] = file_name
+                        else:
+                            duplicates[temp_hash].append(file_name)
+                else:
+                    hashes[temp_hash] = file_name
+                    original[temp_hash] = file_name
+            #except:
+            #    pass
         print_progress_bar(index + 1, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
     end_time = time.perf_counter()
     print(f"Time taken: {end_time-start_time:0.4f} seconds. Total number of files checked: {total_items}. Hash size was: {hash_size}")
-    print(f"{len(duplicates)} duplicate images found.")
+    number_of_dup = sum([len(duplicates[x]) for x in duplicates if isinstance(duplicates[x], list)])
+    
+    print(f"{number_of_dup} duplicate images found.")
     if len(duplicates) != 0:
         if print_list == True:
-            print("Duplicates found:")
-            for i in duplicates:
-                print(i)
+            for (k,v), (k2, v2) in zip(duplicates.items(), original.items()):
+                print(f"\n{v2}\n---------------")
+                for i in v:
+                    print(i)
         else:
             answer = input("Do you want to delete all duplicate images?\nWrite 'delete' to confirm.\n")
             if answer == "delete":
                 not_deleted = []
-                print_progress_bar(0, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50) # New progress bar for file deletion
-                for index, img_name in enumerate(duplicates):
-                    try:
-                        os.remove(os.path.join(dir_name, img_name))
-                    except:
-                        not_deleted.append(os.path.join(dir_name, img_name))
-                    print_progress_bar(index + 1, len(duplicates), prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
+                print_progress_bar(0, number_of_dup, prefix = 'Progress:', suffix = 'Complete', length = 50) # New progress bar for file deletion
+                counter = 0
+                for values in duplicates.values():
+                    for img_name in values:
+                        try:
+                            os.remove(os.path.join(dir_name, img_name))
+                        except:
+                            not_deleted.append(os.path.join(dir_name, img_name))
+                        counter += 1
+                        print_progress_bar(counter, number_of_dup, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
 
                 if len(not_deleted) != 0:
                     print("Could not delete some files.\nMake sure the following files are not in use.")
