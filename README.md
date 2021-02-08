@@ -6,6 +6,8 @@ It uses average hashing to accomplish this.
 
 <pre>
 Usage: rmi-dup.py -d < directory >
+       rmi-dup.py -d < directory > -r .txt  
+       rmi-dup.py -d < directory > -s 64  
 Removes all duplicate images from the specified directory  
 Duplicates can be in different resolution and/or format  
 
