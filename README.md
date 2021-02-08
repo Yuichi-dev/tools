@@ -12,4 +12,5 @@ Duplicates can be in different resolution and/or format
 -d, --directory   Specify directory from which to remove duplicate images  
 -h, --help        Display this help and exit  
 -l, --list        Use with -d to list duplicates in the specified folder  
+-s, --size        Size of the hashable image. Default = 8.  
 </pre>   
