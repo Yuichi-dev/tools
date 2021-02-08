@@ -39,27 +39,27 @@ def rm_dup(dir_name, print_list, hash_size):
     for index, file_name in enumerate(file_names):
         file_path = os.path.join(dir_name, file_name)
         if os.path.isfile(file_path) and ".psd" not in file_path: # Skip .psd files since it takes forever to hash them.
-            #try:
-            with Image.open(file_path) as img:
-                temp_hash = imagehash.average_hash(img, hash_size)
-                if temp_hash in hashes:
+            try:
+                with Image.open(file_path) as img:
+                    temp_hash = imagehash.average_hash(img, hash_size)
+                    if temp_hash in hashes:
 
-                    # Open the previous duplicate and compare with current file.
-                    # Keep the one with bigger resolution
-                    with Image.open(os.path.join(dir_name, hashes[temp_hash])) as img2:                      
-                        if temp_hash not in duplicates:
-                            duplicates[temp_hash] = []
-                        if img2.size[0] < img.size[0]:
-                            duplicates[temp_hash].append(hashes[temp_hash])
-                            hashes[temp_hash] = file_name
-                            original[temp_hash] = file_name
-                        else:
-                            duplicates[temp_hash].append(file_name)
-                else:
-                    hashes[temp_hash] = file_name
-                    original[temp_hash] = file_name
-            #except:
-            #    pass
+                        # Open the previous duplicate and compare with current file.
+                        # Keep the one with bigger resolution
+                        with Image.open(os.path.join(dir_name, hashes[temp_hash])) as img2:                      
+                            if temp_hash not in duplicates:
+                                duplicates[temp_hash] = []
+                            if img2.size[0] < img.size[0]:
+                                duplicates[temp_hash].append(hashes[temp_hash])
+                                hashes[temp_hash] = file_name
+                                original[temp_hash] = file_name
+                            else:
+                                duplicates[temp_hash].append(file_name)
+                    else:
+                        hashes[temp_hash] = file_name
+                        original[temp_hash] = file_name
+            except:
+                pass
         print_progress_bar(index + 1, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
     end_time = time.perf_counter()
     print(f"Time taken: {end_time-start_time:0.4f} seconds. Total number of files checked: {total_items}. Hash size was: {hash_size}")
