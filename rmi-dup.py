@@ -1,10 +1,9 @@
 #! /usr/bin/python3
-import os, sys, getopt, imagehash, time
+import os, sys, getopt, imagehash, time, PIL, cv2
 from PIL import Image
+import numpy as np
 
-# Remove all duplicates. Works if the only difference is resolution and/or fileformat.
-
-def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', print_end = "\r"):
+def print_progress_bar (iteration, total, prefix = 'Progress:', suffix = 'Complete', decimals = 1, length = 50, fill = '█', print_end = "\r"):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -21,86 +20,75 @@ def print_progress_bar (iteration, total, prefix = '', suffix = '', decimals = 1
     filled_length = int(length * iteration // total)
     bar = fill * filled_length + '-' * (length - filled_length)
     print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = print_end)
-    # Print a new line on completion
-    if iteration == total: 
+    if iteration == total: # Print a new line on completion
         print()
 
-def rm_dup(dir_name, print_list, hash_size, remove):
-    file_names = os.listdir(dir_name)
+        
+def find_duplicates(dir_name, print_list, hash_size, rem_ext):
+    file_paths = [os.path.join(dir_name, file_name) for file_name in os.listdir(dir_name)]
     hashes = {} # {“Hash”: “Image”,…}
     duplicates = {} # File names of duplicates
-    original = {} # Storing the "original" image
-    # hash_size = 8 # Image will be resized to 8x8 | 8 = default. Anything higher will probably be more accurate and also slower.
-    total_items = len(file_names) # Used for the progress bar
     start_time = time.perf_counter()
+    number_of_files = len(file_paths)
     
-    print_progress_bar(0, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50)
+    print_progress_bar(0, number_of_files) # Create the progress bar
     
-    for index, file_name in enumerate(file_names):
-        file_path = os.path.join(dir_name, file_name)
+    for index, file_path in enumerate(file_paths):
         if os.path.isfile(file_path) and ".psd" not in file_path: # Skip .psd files since it takes forever to hash them.
             try:
                 with Image.open(file_path) as img:
                     temp_hash = imagehash.average_hash(img, hash_size)
+                    file_name = os.path.basename(file_path)
                     if temp_hash in hashes:
-
-                        # Open the previous duplicate and compare with current file.
-                        # Keep the one with bigger resolution
-                        with Image.open(os.path.join(dir_name, hashes[temp_hash])) as img2:                      
+                        with Image.open(os.path.join(dir_name, hashes[temp_hash])) as img2: # Open the last duplicate and compare with current. Keep the highest res.
                             if temp_hash not in duplicates:
                                 duplicates[temp_hash] = []
                             if img2.size[0] < img.size[0]:
                                 duplicates[temp_hash].append(hashes[temp_hash])
                                 hashes[temp_hash] = file_name
-                                original[temp_hash] = file_name
                             else:
                                 duplicates[temp_hash].append(file_name)
                     else:
                         hashes[temp_hash] = file_name
-                        original[temp_hash] = file_name
-            except:
+            except KeyboardInterrupt: # Exit if interrupted with Ctrl+C
+                print()
+                sys.exit()
+            except PIL.UnidentifiedImageError: # Skip all the files that PIL cant read.
                 pass
-        print_progress_bar(index + 1, total_items, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
+        print_progress_bar(index + 1, number_of_files) # Update the progress bar
     end_time = time.perf_counter()
-    print(f"Time taken: {end_time-start_time:0.4f} seconds. Total number of files checked: {total_items}. Hash size was: {hash_size}")
-    number_of_dup = sum([len(duplicates[x]) for x in duplicates if isinstance(duplicates[x], list)])
+    print(f"Time taken: {end_time-start_time:0.4f} seconds. Total number of files checked: {number_of_files}.")
+    number_of_dup = len([i for v in duplicates.values() for i in v])
+    print(f"{number_of_dup} duplicate images found. Hash size was: {hash_size}")
     
-    print(f"{number_of_dup} duplicate images found.")
-    if len(duplicates) != 0:
-        if print_list == True:
-            for (k,v), (k2, v2) in zip(duplicates.items(), original.items()):
-                print(f"\n{original[k]}\n---------------")
-                for i in duplicates[k]:
-                    print(i)
-        else:
-            if remove == '':
-                answer = input("Do you want to delete all duplicate images?\nWrite 'delete' to confirm.\n")
-            else:
-                answer = input(f"Do you want to delete all duplicate images and files with the same name + {remove} extension.\nWrite 'delete' to confirm.\n")
-            if answer == "delete":
-                not_deleted = []
-                print_progress_bar(0, number_of_dup, prefix = 'Progress:', suffix = 'Complete', length = 50) # New progress bar for file deletion
-                counter = 0
-                for values in duplicates.values():
-                    for img_name in values:
-                        try:
-                            os.remove(os.path.join(dir_name, img_name))
-                        except:
-                            not_deleted.append(os.path.join(dir_name, img_name))
-                        if os.path.isfile(os.path.splitext(os.path.join(dir_name, img_name))[0] + remove) and remove != '': 
-                            try:
-                                os.remove(os.path.splitext(os.path.join(dir_name, img_name))[0] + remove)
-                            except:
-                                not_deleted.append(os.path.splitext(os.path.join(dir_name, img_name))[0] + remove)
-                        counter += 1
-                        print_progress_bar(counter, number_of_dup, prefix = 'Progress:', suffix = 'Complete', length = 50) # Update the progress bar
+    return duplicates, hashes
+    
+def print_duplicates(duplicates, hashes):
+    for (k,v), (k2, v2) in zip(duplicates.items(), hashes.items()):
+        print(f"\n{hashes[k]}\n---------------")
+        for i in duplicates[k]:
+            print(i)
+                
+def remove_duplicates(files, answer, dir_name):
+    number_of_files = len([i for v in duplicates.values() for i in v])
+    not_deleted = []
+    print_progress_bar(0, number_of_files) # New progress bar for file deletion
+    counter = 0
+    for values in files.values():
+        for file_name in values:
+            try:
+                os.remove(os.path.join(dir_name, file_name))
+            except:
+                not_deleted.append(os.path.join(dir_name, file_name))
+            counter += 1
+            print_progress_bar(counter, number_of_files) # Update the progress bar
 
-                if len(not_deleted) != 0:
-                    print("Could not delete some files.\nMake sure the following files are not in use.")
-                    for i in not_deleted:
-                        print(i)
+    if len(not_deleted) != 0:
+        print("Could not delete the following files:")
+        for i in not_deleted:
+            print(i)
 
-def main(argv):
+def get_args(argv):
     help_text = ''.join(("Usage: rmi-dup.py -d <directory>\n",
                          "       rmi-dup.py -d <directory> -r .txt\n",  
                          "       rmi-dup.py -d <directory> -s 64\n",
@@ -111,10 +99,12 @@ def main(argv):
                          "-l, --list         Use with -d to list duplicates in the specified folder\n",
                          "-s, --size         Size of the hashable image. Default = 8\n",
                          "-r, --remove       Remove files with given extension that share name with duplicates"))
+    
+    # Default args
     print_list = False
     run = False # This is so that the script runs after checking all parameters.
     hash_size = 8
-    remove = '' # Remove everything that shares the same name as the duplicates with chosen extension.
+    rem_ext = '' # Remove everything that shares the same name as the duplicates with chosen extension.
     
     try:
         opts, args = getopt.getopt(argv, "hld:s:r:", ["help","list","directory"])
@@ -128,7 +118,6 @@ def main(argv):
         if opt in ("-h", "--help"):
             print(help_text)
             sys.exit()
-        
         elif opt in ("-d", "--directory"):
             dir_name = arg
             if os.path.exists(dir_name):
@@ -136,22 +125,35 @@ def main(argv):
             else:
                 print(f"-d, --directory | {dir_name} does not exist")
                 sys.exit()
-        
         elif opt in ("-l", "--list"):
             print_list = True
- 
         elif opt in ("-s", "--size"):
             try:
-                hash_size = int(arg)
-                
+                hash_size = int(arg)    
             except:
                 print(f"-s, --s | {arg} is not a valid number")
                 sys.exit()
         elif opt in ("-r", "--remove"):
-            remove = arg
+            rem_ext = arg
                 
     if run == True:
-        rm_dup(dir_name, print_list, hash_size, remove)
-            
+        return dir_name, print_list, hash_size, rem_ext
+    
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    dir_name, print_list, hash_size, rem_ext = get_args(sys.argv[1:])
+    duplicates, hashes = find_duplicates(dir_name, print_list, hash_size, rem_ext)
+    if duplicates != {}:
+        if print_list == True: # Check if -l, --list argument was given
+            print_duplicates(duplicates, hashes)
+        else:
+            if rem_ext == '': # Check if -r, --remove argument was given
+                answer = input("Do you want to delete all duplicate images?\nWrite 'delete' to confirm.\n")
+            else:
+                answer = input(f"Do you want to delete all duplicate images? This will also delete {rem_ext} files with same name as the duplicates\nWrite 'delete' to confirm.\n")
+            if answer == "delete":
+                print("Removing duplicates")
+                remove_duplicates(duplicates, answer, dir_name)
+                if rem_ext != '': # Check if -r, --remove argument was given
+                    files_ext = {k:[os.path.splitext(v[i])[0]+rem_ext for i in range(len(v))] for (k, v) in duplicates.items()} # replaces extension with rem_ext
+                    print(f"Removing {rem_ext} files")
+                    remove_duplicates(files_ext, answer, dir_name)
