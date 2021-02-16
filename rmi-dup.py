@@ -1,5 +1,5 @@
 #! /usr/bin/python3
-import os, sys, getopt, imagehash, time, PIL, cv2
+import os, sys, getopt, imagehash, time, PIL
 from PIL import Image
 import numpy as np
 
